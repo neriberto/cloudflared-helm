@@ -1,0 +1,4 @@
+apiVersion: v2
+name: cloudflared-tunnel
+description: Helm chart para Cloudflare Tunnel
+version: 0.1.0
