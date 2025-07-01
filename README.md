@@ -27,7 +27,7 @@ spec:
     path: charts/cloudflared-tunnel
     helm:
       values: |
-        token: "seu-token-aqui-ou-ref-para-secret"
+        token: "YOUR_CLOUDFLARED_TOKEN_HERE"
   destination:
     server: https://kubernetes.default.svc
     namespace: zerotrust
