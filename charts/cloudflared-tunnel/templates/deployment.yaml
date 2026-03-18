@@ -2,9 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudflared
-  namespace: zerotrust
+  namespace: {{ default .Release.Namespace .Values.namespace | quote }}
   labels:
     app: cloudflared
+    app.kubernetes.io/name: cloudflared-tunnel
+    app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
   selector:
@@ -15,15 +17,54 @@ spec:
       labels:
         app: cloudflared
     spec:
+      securityContext:
+    {{ toYaml .Values.securityContext.pod | nindent 8 }}
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2025.6.1
-          command:
-            - cloudflared
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          securityContext:
+{{ toYaml .Values.securityContext.container | nindent 12 }}
+          ports:
+            - containerPort: {{ .Values.probes.port }}
+          {{- if .Values.token }}
+          args:
             - --protocol
             - http2
             - tunnel
             - --no-autoupdate
             - run
             - --token
-            - {{ .Values.token }}
+            - {{ .Values.token | quote }}
+          {{- else }}
+          env:
+            - name: CLOUDFLARED_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-cloudflared-token
+                  key: token
+          args:
+            - --protocol
+            - http2
+            - tunnel
+            - --no-autoupdate
+            - run
+            - --token
+            - "$(CLOUDFLARED_TOKEN)"
+          {{- end }}
+          resources:
+{{ toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: {{ .Values.probes.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: {{ .Values.probes.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          {{- end }}

@@ -1,1 +1,36 @@
+namespace: zerotrust
+createNamespace: false
+
+image:
+  repository: cloudflare/cloudflared
+  tag: "2026.3.0"
+  pullPolicy: IfNotPresent
+
 token: "YOUR_CLOUDFLARED_TOKEN_HERE"
+
+probes:
+  enabled: true
+  port: 20241
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+securityContext:
+  pod:
+    runAsUser: 1000
+    runAsNonRoot: true
+    fsGroup: 1000
+  container:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
